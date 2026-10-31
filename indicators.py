@@ -19,14 +19,36 @@ def calculate_aroon(df: pd.DataFrame, period: int=25) -> pd.DataFrame:
     return res
 
 
-def calculate_ema(df: pd.DataFrame, period: int=200) -> pd.DataFrame:
+def calculate_ema(df: pd.DataFrame, period: int=250) -> pd.DataFrame:
     res = df.copy()
     alpha = 2 / (period + 1)
 
-    res["close"].ewm(
+    res["ema"] = res["close"].ewm(
         alpha=alpha,
-        min_periods=period + 1,
-        span=period,
+        min_periods=period,
+        adjust=False,
+    ).mean()
+
+    return res
+
+
+def calculate_atr(df: pd.DataFrame, period: int=14) -> pd.DataFrame:
+    res = df.copy()
+    alpha = 1 / period
+    prev_close = res["close"].shift(1)
+    tr = pd.concat(
+        [
+            res["high"] - res["low"],
+            abs(res["high"] - prev_close),
+            abs(res["low"] - prev_close),
+        ],
+        axis=1,
+    ).max(axis=1)
+
+    res["atr"] = tr.ewm(
+        alpha=alpha,
+        min_periods=period,
+        adjust=False,
     ).mean()
 
     return res
