@@ -17,3 +17,16 @@ def calculate_aroon(df: pd.DataFrame, period: int=25) -> pd.DataFrame:
     res["aroon_down"] = 100 * (period - low_age) / period
 
     return res
+
+
+def calculate_ema(df: pd.DataFrame, period: int=200) -> pd.DataFrame:
+    res = df.copy()
+    alpha = 2 / (period + 1)
+
+    res["close"].ewm(
+        alpha=alpha,
+        min_periods=period + 1,
+        span=period,
+    ).mean()
+
+    return res
