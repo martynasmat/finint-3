@@ -9,11 +9,12 @@ class Backtest:
             trading_fee: float,
             slippage_rate: float,
             risk_per_trade: float = 0.1,
-            risk_multiplier: float = 4,
+            stop_loss_multiplier: float = 4,
+            take_profit_multiplier: float = 2,
             aroon_up_entry_signal: int = 70,
             aroon_down_entry_signal: int = 30,
-            ema_period: int = 200,
             aroon_period: int = 25,
+            ema_period: int = 200,
             atr_period: int = 14,
     ):
         self.df = df
@@ -23,11 +24,13 @@ class Backtest:
 
         # Percentage of total bankroll per trade
         self.risk_per_trade = risk_per_trade
-        # Multiplier used to determine stop-loss and take-profit prices (ATR * risk_multiplier)
-        self.risk_multiplier = risk_multiplier
+        # Multiplier used to determine stop-loss prices (ATR * stop_loss_multiplier)
+        self.stop_loss_multiplier = stop_loss_multiplier
         # Aroon Up/Down values used for entry signals
         self.aroon_up_entry_signal = aroon_up_entry_signal
         self.aroon_down_entry_signal = aroon_down_entry_signal
+        # Multiplier used to determine take-profit prices (ATR * stop_loss_multiplier * take_profit_multiplier)
+        self.take_profit_multiplier = take_profit_multiplier
 
         self.ema_period = ema_period
         self.aroon_period = aroon_period
@@ -45,8 +48,8 @@ class Backtest:
 
     def set_entry_signals(self):
         condition = (
-            (self.df["aroon_up"] >= 70)
-            & (self.df["aroon_down"] <= 30)
+            (self.df["aroon_up"] >= self.aroon_up_entry_signal)
+            & (self.df["aroon_down"] <= self.aroon_down_entry_signal)
             & (self.df["close"] > self.df["ema"])
         )
 
@@ -70,7 +73,7 @@ class Backtest:
         purchase_value = qty * fill_price
         entry_fee = purchase_value * self.trading_fee
         total_cost = purchase_value + entry_fee
-        risk_per_share = atr * self.risk_multiplier
+        risk_per_share = atr * self.stop_loss_multiplier
 
         self.cash -= total_cost
         self.qty = qty
@@ -78,7 +81,7 @@ class Backtest:
         self.entry_price = fill_price
         self.entry_fee = entry_fee
         self.stop_price = fill_price - risk_per_share
-        self.target_price = fill_price + risk_per_share * 2
+        self.target_price = fill_price + risk_per_share * self.take_profit_multiplier
 
     def reset_attrs(self):
         self.qty = 0

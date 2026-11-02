@@ -72,7 +72,7 @@ def plot(result: dict, symbol: str):
             exits = trades.loc[trades["exit_reason"] == reason]
             axes[0].scatter(
                 exits["exit_ts"],
-                exits["entry_price"],
+                exits["exit_price"],
                 color=clr,
                 marker=marker,
                 s=75,
