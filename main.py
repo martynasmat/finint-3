@@ -19,6 +19,12 @@ symbols = [
     "AAPL",
     "SNDK",
     "LMT",
+    "INTC",
+    "AMZN",
+    "GOOG",
+    "MSFT",
+    "PLTR",
+    "CSCO",
 ]
 
 with ThreadPoolExecutor(max_workers=3) as executor:

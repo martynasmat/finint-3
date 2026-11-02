@@ -14,6 +14,12 @@ def main():
         "AAPL",
         "SNDK",
         "LMT",
+        "INTC",
+        "AMZN",
+        "GOOG",
+        "MSFT",
+        "PLTR",
+        "CSCO",
     ]
 
     for symbol in symbols:
@@ -21,7 +27,7 @@ def main():
             symbol,
             datetime.datetime(2025, 10, 1),
             datetime.datetime(2026, 10, 1),
-            tf=TimeFrame(1, TimeFrameUnit.Minute),
+            tf=TimeFrame(1, TimeFrameUnit.Hour),
             limit=10000000,
         )
         res.df.to_csv(f"{symbol}.csv")
