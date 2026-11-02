@@ -5,6 +5,32 @@ from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 
 
+def calculate_sharpe(
+    equity: pd.Series,
+    annual_risk_free_rate: float = 0.0,
+) -> float:
+    daily_equity = (
+        equity.sort_index()
+        .tz_convert("America/New_York")
+        .resample("D")
+        .last()
+        .dropna()
+    )
+
+    returns = daily_equity.pct_change(fill_method=None).dropna()
+    daily_risk_free_rate = annual_risk_free_rate / 252
+    excess_returns = returns - daily_risk_free_rate
+
+    volatility = excess_returns.std(ddof=1)
+
+    if pd.isna(volatility) or volatility == 0:
+        return float("nan")
+
+    return float(
+        excess_returns.mean() / volatility * (252 ** 0.5)
+    )
+
+
 def summarize(result, starting_cash, slippage_rate):
     equity = pd.DataFrame(result["equity_history"]).set_index("ts")["value"]
     trades = pd.DataFrame(result["trade_history"])
@@ -32,6 +58,7 @@ def summarize(result, starting_cash, slippage_rate):
         "Fees": fees,
         "Slippage": slippage,
         "Max drawdown %": drawdown,
+        "Sharpe ratio": calculate_sharpe(equity, 0.047)
     }
 
 

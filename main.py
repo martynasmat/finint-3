@@ -18,7 +18,8 @@ def create_and_run_backtest(symbol: str):
         trading_fee=TRADING_FEE,
         slippage_rate=SLIPPAGE_RATE,
         risk_per_trade=0.1,
-        risk_multiplier=4,
+        stop_loss_multiplier=4,
+        take_profit_multiplier=2,
         aroon_up_entry_signal=70,
         aroon_down_entry_signal=30,
         ema_period=200,
@@ -29,7 +30,6 @@ def create_and_run_backtest(symbol: str):
 
 symbols = [
     "AAPL",
-    "SNDK",
     "LMT",
     "INTC",
     "AMZN",

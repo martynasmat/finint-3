@@ -12,7 +12,6 @@ def main():
     )
     symbols = [
         "AAPL",
-        "SNDK",
         "LMT",
         "INTC",
         "AMZN",
@@ -25,12 +24,12 @@ def main():
     for symbol in symbols:
         res = client.fetch_bar_data(
             symbol,
-            datetime.datetime(2025, 10, 1),
-            datetime.datetime(2026, 10, 1),
+            datetime.datetime(2025, 1, 1),
+            datetime.datetime(2025, 12, 31),
             tf=TimeFrame(1, TimeFrameUnit.Hour),
             limit=10000000,
         )
-        res.df.to_csv(f"{symbol}.csv")
+        res.df.to_csv(f"{symbol}-2025.csv")
 
 
 if __name__ == "__main__":
