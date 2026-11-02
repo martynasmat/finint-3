@@ -54,6 +54,14 @@ class Backtest:
         self.stop_price = fill_price - risk_per_share
         self.target_price = fill_price + risk_per_share * 2
 
+    def reset_attrs(self):
+        self.qty = 0
+        self.stop_price = 0
+        self.target_price = 0
+        self.entry_time = None
+        self.entry_price = None
+        self.entry_fee = 0.0
+
     def close_position(self, ts: pd.Timestamp, price: float, reason: str) -> None:
         if self.qty == 0:
             return
@@ -79,12 +87,7 @@ class Backtest:
             }
         )
 
-        self.qty = 0
-        self.entry_time = None
-        self.entry_price = None
-        self.entry_fee = 0.0
-        self.stop_price = 0.0
-        self.target_price = 0.0
+        self.reset_attrs()
 
     def run(self):
         self.set_entry_signals()
