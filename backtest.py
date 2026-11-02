@@ -32,7 +32,7 @@ class Backtest:
         self.df["entry"] = condition & ~condition.shift(1, fill_value=False)
 
     def set_exit_signals(self):
-        condition = self.df["aroon_up"] < self.df["aroon_down"]
+        condition = (self.df["aroon_up"] < self.df["aroon_down"]) & (self.df["close"] < self.df["ema"])
 
         self.df["exit"] = condition & ~condition.shift(1, fill_value=False)
 
@@ -42,14 +42,14 @@ class Backtest:
 
         fill_price = price * (1 + self.slippage_rate)
         cost_per_share = fill_price * (1 + self.trading_fee)
-        qty = min(10, int(self.cash // cost_per_share))
+        qty = self.cash * 0.1 // cost_per_share
         if qty <= 0:
             return
 
         purchase_value = qty * fill_price
         entry_fee = purchase_value * self.trading_fee
         total_cost = purchase_value + entry_fee
-        risk_per_share = atr * 2
+        risk_per_share = atr * 4
 
         self.cash -= total_cost
         self.qty = qty
