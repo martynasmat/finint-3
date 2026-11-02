@@ -3,7 +3,7 @@ import pandas as pd
 
 from backtest import Backtest
 from indicators import calculate_aroon, calculate_atr, calculate_ema
-from reporting import summarize
+from reporting import summarize, plot
 
 STARTING_CASH = 100000
 TRADING_FEE = 0.001
@@ -52,6 +52,7 @@ def main():
     summaries = {}
     for symbol, df, result in zip(symbols, dfs, results):
         stats = summarize(result, STARTING_CASH, SLIPPAGE_RATE)
+        plot(result, symbol)
         summaries[symbol] = stats
 
     summary = pd.DataFrame.from_dict(summaries, orient="index").rename_axis("Symbol")

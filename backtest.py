@@ -9,7 +9,7 @@ class Backtest:
             slippage_rate: float,
     ):
         self.df = df
-        self.cash = cash
+        self.cash = self.starting_cash = cash
         self.trading_fee = trading_fee
         self.slippage_rate = slippage_rate
         self.qty = 0
@@ -119,7 +119,8 @@ class Backtest:
 
             self.equity.append({
                 "ts": curr.Index,
-                "value": self.cash + self.qty * curr.close
+                "value": self.cash + self.qty * curr.close,
+                "close": curr.close,
             })
             prev = curr
 
@@ -130,4 +131,6 @@ class Backtest:
         return {
             "equity_history": self.equity,
             "trade_history": self.trades,
+            "dataframe": self.df,
+            "starting_cash": self.starting_cash,
         }
