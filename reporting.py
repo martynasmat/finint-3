@@ -56,7 +56,7 @@ def plot(result: dict, symbol: str):
             trades["entry_price"],
             color="blue",
             marker="o",
-            s=100,
+            s=75,
             zorder=10,
             label="Entry"
         )
@@ -75,7 +75,7 @@ def plot(result: dict, symbol: str):
                 exits["entry_price"],
                 color=clr,
                 marker=marker,
-                s=100,
+                s=75,
                 zorder=10,
                 label=reason,
             )

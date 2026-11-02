@@ -1,34 +1,29 @@
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
-
 from backtest import Backtest
-from indicators import calculate_aroon, calculate_atr, calculate_ema
 from reporting import summarize, plot
 
 STARTING_CASH = 100000
 TRADING_FEE = 0.001
 SLIPPAGE_RATE = 0.0005
 
-def calculate_indicators(symbol: str) -> pd.DataFrame:
-    df = pd.read_csv(
-        f"data/{symbol}.csv",
-        index_col="timestamp",
-        parse_dates=["timestamp"]
-    ).sort_index()
-
-    df = calculate_aroon(df, 14)
-    df = calculate_atr(df, 14)
-    df = calculate_ema(df, 100)
-
-    return df
-
-
-def create_and_run_backtest(df: pd.DataFrame):
+def create_and_run_backtest(symbol: str):
     return Backtest(
-        df,
-        STARTING_CASH,
-        TRADING_FEE,
-        SLIPPAGE_RATE
+        df=pd.read_csv(
+            f"data/{symbol}.csv",
+            index_col="timestamp",
+            parse_dates=["timestamp"]
+        ).sort_index(),
+        cash=STARTING_CASH,
+        trading_fee=TRADING_FEE,
+        slippage_rate=SLIPPAGE_RATE,
+        risk_per_trade=0.1,
+        risk_multiplier=4,
+        aroon_up_entry_signal=70,
+        aroon_down_entry_signal=30,
+        ema_period=200,
+        aroon_period=25,
+        atr_period=14,
     ).run()
 
 
@@ -46,11 +41,10 @@ symbols = [
 
 def main():
     with ThreadPoolExecutor(max_workers=10) as executor:
-        dfs = list(executor.map(calculate_indicators, symbols))
-        results = list(executor.map(create_and_run_backtest, dfs))
+        results = list(executor.map(create_and_run_backtest, symbols))
 
     summaries = {}
-    for symbol, df, result in zip(symbols, dfs, results):
+    for symbol, result in zip(symbols, results):
         stats = summarize(result, STARTING_CASH, SLIPPAGE_RATE)
         plot(result, symbol)
         summaries[symbol] = stats

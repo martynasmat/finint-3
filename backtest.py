@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 class Backtest:
     def __init__(
@@ -7,11 +8,31 @@ class Backtest:
             cash: float,
             trading_fee: float,
             slippage_rate: float,
+            risk_per_trade: float = 0.1,
+            risk_multiplier: float = 4,
+            aroon_up_entry_signal: int = 70,
+            aroon_down_entry_signal: int = 30,
+            ema_period: int = 200,
+            aroon_period: int = 25,
+            atr_period: int = 14,
     ):
         self.df = df
         self.cash = self.starting_cash = cash
         self.trading_fee = trading_fee
         self.slippage_rate = slippage_rate
+
+        # Percentage of total bankroll per trade
+        self.risk_per_trade = risk_per_trade
+        # Multiplier used to determine stop-loss and take-profit prices (ATR * risk_multiplier)
+        self.risk_multiplier = risk_multiplier
+        # Aroon Up/Down values used for entry signals
+        self.aroon_up_entry_signal = aroon_up_entry_signal
+        self.aroon_down_entry_signal = aroon_down_entry_signal
+
+        self.ema_period = ema_period
+        self.aroon_period = aroon_period
+        self.atr_period = atr_period
+
         self.qty = 0
         self.stop_price = 0
         self.target_price = 0
@@ -42,14 +63,14 @@ class Backtest:
 
         fill_price = price * (1 + self.slippage_rate)
         cost_per_share = fill_price * (1 + self.trading_fee)
-        qty = self.cash * 0.1 // cost_per_share
+        qty = self.cash * self.risk_per_trade // cost_per_share
         if qty <= 0:
             return
 
         purchase_value = qty * fill_price
         entry_fee = purchase_value * self.trading_fee
         total_cost = purchase_value + entry_fee
-        risk_per_share = atr * 4
+        risk_per_share = atr * self.risk_multiplier
 
         self.cash -= total_cost
         self.qty = qty
@@ -94,7 +115,63 @@ class Backtest:
 
         self.reset_attrs()
 
+    def calculate_ema(self):
+        res = self.df.copy()
+        alpha = 2 / (self.ema_period + 1)
+
+        res["ema"] = res["close"].ewm(
+            alpha=alpha,
+            min_periods=self.ema_period,
+            adjust=False,
+        ).mean()
+
+        self.df = res
+
+    def calculate_aroon(self):
+        res = self.df.copy()
+        window = self.aroon_period + 1
+
+        high_age = res["high"].rolling(
+            window, min_periods=window
+        ).apply(lambda x: np.argmax(x[::-1]), raw=True)
+
+        low_age = res["low"].rolling(
+            window, min_periods=window
+        ).apply(lambda x: np.argmin(x[::-1]), raw=True)
+
+        res["aroon_up"] = 100 * (self.aroon_period - high_age) / self.aroon_period
+        res["aroon_down"] = 100 * (self.aroon_period - low_age) / self.aroon_period
+
+        self.df = res
+
+    def calculate_atr(self):
+        res = self.df.copy()
+        alpha = 1 / self.atr_period
+        prev_close = res["close"].shift(1)
+        tr = pd.concat(
+            [
+                res["high"] - res["low"],
+                abs(res["high"] - prev_close),
+                abs(res["low"] - prev_close),
+            ],
+            axis=1,
+        ).max(axis=1)
+
+        res["atr"] = tr.ewm(
+            alpha=alpha,
+            min_periods=self.atr_period,
+            adjust=False,
+        ).mean()
+
+        self.df = res
+
+    def calculate_indicators(self):
+        self.calculate_ema()
+        self.calculate_aroon()
+        self.calculate_atr()
+
     def run(self):
+        self.calculate_indicators()
         self.set_entry_signals()
         self.set_exit_signals()
         prev = None
