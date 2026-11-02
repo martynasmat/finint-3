@@ -5,13 +5,14 @@ from backtest import Backtest
 from indicators import *
 
 STARTING_CASH = 100000
-TRADING_FREE = 0.01
-SLIPPAGE_RATE = 0.005
+TRADING_FREE = 0.001
+SLIPPAGE_RATE = 0.0005
 
 def calculate_indicators(symbol: str) -> pd.DataFrame:
     df = pd.read_csv(
         f"./data/{symbol}.csv",
         index_col="timestamp",
+        parse_dates=["timestamp"]
     )
 
     df = calculate_aroon(df, 25)

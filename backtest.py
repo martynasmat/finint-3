@@ -109,12 +109,12 @@ class Backtest:
                         self.close_position(curr.Index, curr.open, "stop_loss")
                     elif curr.open >= self.target_price:
                         self.close_position(curr.Index, curr.open, "take_profit")
+                    elif prev.exit:
+                        self.close_position(curr.Index, curr.open, "exit_signal")
                     elif curr.low <= self.stop_price:
                         self.close_position(curr.Index, self.stop_price, "stop_loss")
                     elif curr.high >= self.target_price:
                         self.close_position(curr.Index, self.target_price, "take_profit")
-                    elif prev.exit:
-                        self.close_position(curr.Index, curr.open, "exit_signal")
 
 
             self.equity.append({
@@ -124,11 +124,8 @@ class Backtest:
             prev = curr
 
         if self.qty > 0:
-            self.close_position(curr.Index, curr.open, "data_end")
-            self.equity.append({
-                "ts": curr.Index,
-                "value": self.cash + self.qty * curr.close
-            })
+            self.close_position(curr.Index, curr.close, "data_end")
+            self.equity[-1]["value"] = self.cash
 
         return {
             "equity_history": self.equity,
