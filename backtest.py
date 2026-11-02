@@ -21,6 +21,7 @@ class Backtest:
         self.entry_fee = 0.0
 
         self.trades = []
+        self.equity = []
 
     def set_entry_signals(self):
         condition = (
@@ -113,5 +114,8 @@ class Backtest:
                     elif curr.high >= self.target_price:
                         self.close_position(curr.Index, self.target_price, "take_profit")
 
-            equity = self.cash + self.qty * curr.close
+            self.equity.append({
+                "ts": curr.Index,
+                "value": self.cash + self.qty * curr.close
+            })
             prev = curr
