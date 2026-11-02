@@ -1,7 +1,6 @@
 import pandas as pd
 
 class Backtest:
-
     def __init__(
             self,
             df: pd.DataFrame,
@@ -31,6 +30,11 @@ class Backtest:
         )
 
         self.df["entry"] = condition & ~condition.shift(1, fill_value=False)
+
+    def set_exit_signals(self):
+        condition = self.df["aroon_up"] < self.df["aroon_down"]
+
+        self.df["exit"] = condition & ~condition.shift(1, fill_value=False)
 
     def open_position(self, ts: pd.Timestamp, price: float, atr: float) -> None:
         if self.qty > 0:
@@ -92,16 +96,12 @@ class Backtest:
 
     def run(self):
         self.set_entry_signals()
+        self.set_exit_signals()
         prev = None
 
         for curr in self.df.itertuples():
             if prev is not None:
-                if (
-                    self.qty == 0
-                    and prev.entry
-                    and pd.notna(prev.atr)
-                    and prev.atr > 0
-                ):
+                if self.qty == 0 and prev.entry and pd.notna(prev.atr) and prev.atr > 0:
                     self.open_position(curr.Index, curr.open, prev.atr)
 
                 if self.qty > 0:
@@ -113,9 +113,24 @@ class Backtest:
                         self.close_position(curr.Index, self.stop_price, "stop_loss")
                     elif curr.high >= self.target_price:
                         self.close_position(curr.Index, self.target_price, "take_profit")
+                    elif prev.exit:
+                        self.close_position(curr.Index, curr.open, "exit_signal")
+
 
             self.equity.append({
                 "ts": curr.Index,
                 "value": self.cash + self.qty * curr.close
             })
             prev = curr
+
+        if self.qty > 0:
+            self.close_position(curr.Index, curr.open, "data_end")
+            self.equity.append({
+                "ts": curr.Index,
+                "value": self.cash + self.qty * curr.close
+            })
+
+        return {
+            "equity_history": self.equity,
+            "trade_history": self.trades,
+        }

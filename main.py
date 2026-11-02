@@ -1,6 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
+
+from backtest import Backtest
 from indicators import *
+
+STARTING_CASH = 100000
+TRADING_FREE = 0.01
+SLIPPAGE_RATE = 0.005
 
 def calculate_indicators(symbol: str) -> pd.DataFrame:
     df = pd.read_csv(
@@ -14,6 +20,14 @@ def calculate_indicators(symbol: str) -> pd.DataFrame:
 
     return df
 
+
+def create_and_run_backtest(df: pd.DataFrame):
+    return Backtest(
+        df,
+        STARTING_CASH,
+        TRADING_FREE,
+        SLIPPAGE_RATE
+    ).run()
 
 symbols = [
     "AAPL",
@@ -29,4 +43,7 @@ symbols = [
 
 with ThreadPoolExecutor(max_workers=3) as executor:
     dfs = executor.map(calculate_indicators, symbols)
+    res = executor.map(create_and_run_backtest, dfs)
 
+for r in res:
+    print(r)
