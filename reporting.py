@@ -58,69 +58,99 @@ def summarize(result, starting_cash, slippage_rate):
         "Fees": fees,
         "Slippage": slippage,
         "Max drawdown %": drawdown,
-        "Sharpe ratio": calculate_sharpe(equity, 0.047)
+        "Sharpe ratio": calculate_sharpe(equity, 0)
     }
 
 
-def plot(result: dict, symbol: str):
+def plot(result: dict, symbol: str, optimized_result: dict | None = None):
     eq = pd.DataFrame(result["equity_history"]).set_index("ts")
-    df = result["dataframe"]
+    strategies = [("Unoptimized strategy", result)]
+    if optimized_result is not None:
+        strategies.append(("Optimized strategy", optimized_result))
+
     fig, axes = plt.subplots(
-        nrows=2,
+        nrows=2 * len(strategies) + 1,
         ncols=1,
-        figsize=(21, 7),
+        sharex=True,
+        figsize=(21, 3.5 * (2 * len(strategies) + 1)),
     )
 
     # PRICE, EMA & ENTRY/EXIT
     fig.suptitle(symbol)
-    axes[0].plot(eq.index, eq["close"], label="Close")
-    axes[0].plot(df.index, df["ema"], label="EMA")
+    for ax, (title, strategy_result) in zip(axes, strategies):
+        strategy_equity = pd.DataFrame(strategy_result["equity_history"]).set_index("ts")
+        df = strategy_result["dataframe"]
+        if optimized_result is not None:
+            ax.set_title(title)
+        ax.plot(strategy_equity.index, strategy_equity["close"], label="Close")
+        ax.plot(df.index, df["ema"], label="EMA")
 
-    trades = pd.DataFrame(result["trade_history"])
-    if not trades.empty:
-        axes[0].scatter(
-            trades["entry_ts"],
-            trades["entry_price"],
-            color="blue",
-            marker="o",
-            s=75,
-            zorder=10,
-            label="Entry"
-        )
-
-        exit_styles = {
-            "take_profit": ("green", "X"),
-            "stop_loss": ("red", "X"),
-            "data_end": ("black", "X"),
-            "exit_signal": ("orange", "X")
-        }
-
-        for reason, (clr, marker) in exit_styles.items():
-            exits = trades.loc[trades["exit_reason"] == reason]
-            axes[0].scatter(
-                exits["exit_ts"],
-                exits["exit_price"],
-                color=clr,
-                marker=marker,
+        trades = pd.DataFrame(strategy_result["trade_history"])
+        if not trades.empty:
+            ax.scatter(
+                trades["entry_ts"],
+                trades["entry_price"],
+                color="blue",
+                marker="o",
                 s=75,
                 zorder=10,
-                label=reason,
+                label="Entry"
             )
 
-    axes[0].set_ylabel("Close price")
-    axes[0].legend()
+            exit_styles = {
+                "take_profit": ("green", "X"),
+                "stop_loss": ("red", "X"),
+                "data_end": ("black", "X"),
+                "exit_signal": ("orange", "X")
+            }
+
+            for reason, (clr, marker) in exit_styles.items():
+                exits = trades.loc[trades["exit_reason"] == reason]
+                ax.scatter(
+                    exits["exit_ts"],
+                    exits["exit_price"],
+                    color=clr,
+                    marker=marker,
+                    s=75,
+                    zorder=10,
+                    label=reason,
+                )
+
+        ax.set_ylabel("Close price")
+        ax.legend()
 
     # AROON
-    # axes[1].plot(df.index, df["aroon_up"], label="Aroon Up", color="green")
-    # axes[1].plot(df.index, df["aroon_down"], label="Aroon Down", color="red")
-    # axes[1].set_ylabel("Aroon Up/Down")
-    # axes[1].legend()
+    for ax, (title, strategy_result) in zip(axes[len(strategies):-1], strategies):
+        df = strategy_result["dataframe"]
+        ax.set_title(f"Aroon - {title}")
+        ax.plot(df.index, df["aroon_up"], color="green", label="Aroon Up")
+        ax.plot(df.index, df["aroon_down"], color="red", label="Aroon Down")
+        ax.set_ylim(-5, 105)
+        ax.set_yticks([0, 25, 50, 75, 100])
+        ax.set_ylabel("Aroon")
+        ax.legend()
 
     # EQUITY
-    axes[1].plot(eq.index, eq["value"], label="Equity over time")
-    axes[1].axhline(y=result["starting_cash"], color="gray", linestyle="--", label="Starting cash")
-    axes[1].set_ylabel("Cash + stock ($)")
-    axes[1].legend()
+    axes[-1].plot(
+        eq.index,
+        eq["value"],
+        color="blue",
+        label="Unoptimized" if optimized_result is not None else "Equity over time",
+    )
+    if optimized_result is not None:
+        optimized_equity = (
+            pd.DataFrame(optimized_result["equity_history"]).set_index("ts")
+        )
+        axes[-1].plot(
+            optimized_equity.index,
+            optimized_equity["value"],
+            color="green",
+            label="Optimized",
+        )
+    axes[-1].axhline(y=result["starting_cash"], color="gray", linestyle="--", label="Starting cash")
+    axes[-1].set_ylabel("Cash + stock ($)")
+    axes[-1].set_xlabel("Date")
+    axes[-1].legend()
 
     for ax in axes:
         ax.xaxis.set_major_locator(
@@ -128,4 +158,5 @@ def plot(result: dict, symbol: str):
         )
         ax.tick_params(axis="x", labelrotation=45)
     fig.tight_layout()
+    plt.savefig(f"plots/{symbol}_2024.png")
     plt.show()
